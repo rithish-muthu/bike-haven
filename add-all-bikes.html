@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add All Bikes - Bike Haven</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #ff6b35;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            background: #0056b3; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        .progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #ff6b35, #ff8c42);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b35;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏍️ Add All Bikes to Firestore</h1>
+            <p>This will add all 25 sample bikes to your Firestore database</p>
+        </div>
+        
+        <div id="status" class="status info">
+            Ready to add bikes to Firestore...
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalBikes">25</div>
+                <div class="stat-label">Total Bikes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="addedBikes">0</div>
+                <div class="stat-label">Added</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="existingBikes">0</div>
+                <div class="stat-label">Existing</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="errors">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+        </div>
+        
+        <div class="progress">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="checkExistingData()">Check Existing Data</button>
+            <button onclick="addAllBikes()" id="addBtn">Add All 25 Bikes</button>
+            <button onclick="clearAllData()" class="btn-danger">Clear All Data</button>
+            <button onclick="refreshStats()" class="btn-warning">Refresh Stats</button>
+        </div>
+        
+        <h3>📋 Operation Log:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAqjE3TmrZyNcJS904Hh8l5NiDLYn6LC6E",
+            authDomain: "bike-haven-29ec7.firebaseapp.com",
+            projectId: "bike-haven-29ec7",
+            storageBucket: "bike-haven-29ec7.firebasestorage.app",
+            messagingSenderId: "42407371897",
+            appId: "1:42407371897:web:feb42c89bd81dc0bad20a8",
+            measurementId: "G-BZ6BB4DC65"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // All 25 sample bikes
+        const allBikes = [
+            {
+                name: "KTM Duke 390",
+                brand: "KTM",
+                price: 45,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Powerful and agile street bike with excellent performance and modern design.",
+                features: ["ABS", "LED Lights", "Digital Display", "Traction Control"],
+                mileage: "35 kmpl",
+                engine: "373cc",
+                color: "Orange",
+                availability: true
+            },
+            {
+                name: "Honda CBR 600RR",
+                brand: "Honda",
+                price: 65,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Sport bike with exceptional handling, speed, and racing heritage.",
+                features: ["ABS", "Traction Control", "Quick Shifter", "Launch Control"],
+                mileage: "25 kmpl",
+                engine: "599cc",
+                color: "Red",
+                availability: true
+            },
+            {
+                name: "Yamaha R1",
+                brand: "Yamaha",
+                price: 85,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Racing-inspired superbike with cutting-edge technology and MotoGP DNA.",
+                features: ["ABS", "Traction Control", "Launch Control", "Wheelie Control"],
+                mileage: "20 kmpl",
+                engine: "998cc",
+                color: "Blue",
+                availability: true
+            },
+            {
+                name: "Ducati Panigale V4",
+                brand: "Ducati",
+                price: 120,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Italian masterpiece with V4 engine and premium features for the ultimate riding experience.",
+                features: ["ABS", "Traction Control", "Wheelie Control", "Cornering ABS"],
+                mileage: "18 kmpl",
+                engine: "1103cc",
+                color: "Red",
+                availability: true
+            },
+            {
+                name: "Suzuki GSX-R1000",
+                brand: "Suzuki",
+                price: 75,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Track-focused sport bike with MotoGP technology and precision engineering.",
+                features: ["ABS", "Traction Control", "Launch Control", "Quick Shifter"],
+                mileage: "22 kmpl",
+                engine: "999cc",
+                color: "White",
+                availability: true
+            },
+            {
+                name: "Bajaj Pulsar 200NS",
+                brand: "Bajaj",
+                price: 25,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Reliable and fuel-efficient bike perfect for daily commuting and weekend rides.",
+                features: ["ABS", "Digital Display", "LED Lights", "Fuel Injection"],
+                mileage: "40 kmpl",
+                engine: "199cc",
+                color: "Black",
+                availability: true
+            },
+            {
+                name: "Kawasaki Ninja 650",
+                brand: "Kawasaki",
+                price: 55,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Versatile sport-touring bike with comfortable ergonomics and sporty performance.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "28 kmpl",
+                engine: "649cc",
+                color: "Green",
+                availability: true
+            },
+            {
+                name: "Triumph Street Triple 765",
+                brand: "Triumph",
+                price: 70,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "British engineering meets modern performance in this iconic street bike.",
+                features: ["ABS", "Traction Control", "Quick Shifter", "Ride Modes"],
+                mileage: "26 kmpl",
+                engine: "765cc",
+                color: "Silver",
+                availability: true
+            },
+            {
+                name: "BMW S1000RR",
+                brand: "BMW",
+                price: 95,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "German precision and performance in a track-ready superbike package.",
+                features: ["ABS", "Traction Control", "Launch Control", "Dynamic Damping"],
+                mileage: "21 kmpl",
+                engine: "999cc",
+                color: "White",
+                availability: true
+            },
+            {
+                name: "Aprilia RSV4",
+                brand: "Aprilia",
+                price: 90,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Italian racing heritage with V4 engine and advanced electronics.",
+                features: ["ABS", "Traction Control", "Wheelie Control", "Launch Control"],
+                mileage: "19 kmpl",
+                engine: "1099cc",
+                color: "Red",
+                availability: true
+            },
+            {
+                name: "Honda CB650R",
+                brand: "Honda",
+                price: 50,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Neo-sports café with modern design and smooth inline-four performance.",
+                features: ["ABS", "Digital Display", "LED Lights", "Traction Control"],
+                mileage: "30 kmpl",
+                engine: "649cc",
+                color: "Black",
+                availability: true
+            },
+            {
+                name: "Yamaha MT-09",
+                brand: "Yamaha",
+                price: 60,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Torque-rich naked bike with aggressive styling and thrilling performance.",
+                features: ["ABS", "Traction Control", "Quick Shifter", "Ride Modes"],
+                mileage: "27 kmpl",
+                engine: "847cc",
+                color: "Blue",
+                availability: true
+            },
+            {
+                name: "KTM RC 390",
+                brand: "KTM",
+                price: 40,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Track-focused sport bike with aggressive styling and race-ready performance.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "32 kmpl",
+                engine: "373cc",
+                color: "Orange",
+                availability: true
+            },
+            {
+                name: "Ducati Monster 821",
+                brand: "Ducati",
+                price: 80,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Iconic naked bike with Italian style and L-twin engine character.",
+                features: ["ABS", "Traction Control", "Ride Modes", "Digital Display"],
+                mileage: "24 kmpl",
+                engine: "821cc",
+                color: "Red",
+                availability: true
+            },
+            {
+                name: "Suzuki V-Strom 650",
+                brand: "Suzuki",
+                price: 45,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Adventure touring bike perfect for long rides and varied terrain.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "35 kmpl",
+                engine: "645cc",
+                color: "Yellow",
+                availability: true
+            },
+            {
+                name: "Kawasaki Z900",
+                brand: "Kawasaki",
+                price: 65,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Muscular naked bike with powerful inline-four engine and aggressive stance.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "26 kmpl",
+                engine: "948cc",
+                color: "Green",
+                availability: true
+            },
+            {
+                name: "Triumph Bonneville T120",
+                brand: "Triumph",
+                price: 55,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Classic British motorcycle with modern reliability and timeless style.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "30 kmpl",
+                engine: "1200cc",
+                color: "Black",
+                availability: true
+            },
+            {
+                name: "BMW R1250GS",
+                brand: "BMW",
+                price: 85,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Ultimate adventure bike with boxer engine and advanced electronics.",
+                features: ["ABS", "Traction Control", "Dynamic ESA", "Ride Modes"],
+                mileage: "28 kmpl",
+                engine: "1254cc",
+                color: "Blue",
+                availability: true
+            },
+            {
+                name: "Honda Africa Twin",
+                brand: "Honda",
+                price: 70,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Legendary adventure bike built for exploring the world's toughest terrain.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "32 kmpl",
+                engine: "1084cc",
+                color: "Red",
+                availability: true
+            },
+            {
+                name: "Yamaha FZ-25",
+                brand: "Yamaha",
+                price: 30,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Sporty naked bike with aggressive styling and reliable performance.",
+                features: ["ABS", "Digital Display", "LED Lights", "Fuel Injection"],
+                mileage: "38 kmpl",
+                engine: "249cc",
+                color: "Blue",
+                availability: true
+            },
+            {
+                name: "KTM Adventure 390",
+                brand: "KTM",
+                price: 50,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Adventure bike designed for both city streets and off-road exploration.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "33 kmpl",
+                engine: "373cc",
+                color: "Orange",
+                availability: true
+            },
+            {
+                name: "Ducati Scrambler 800",
+                brand: "Ducati",
+                price: 75,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Retro-styled scrambler with modern performance and Italian flair.",
+                features: ["ABS", "Traction Control", "Digital Display", "LED Lights"],
+                mileage: "25 kmpl",
+                engine: "803cc",
+                color: "Yellow",
+                availability: true
+            },
+            {
+                name: "Suzuki Hayabusa",
+                brand: "Suzuki",
+                price: 100,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Legendary hyperbike with incredible speed and aerodynamic design.",
+                features: ["ABS", "Traction Control", "Launch Control", "Quick Shifter"],
+                mileage: "18 kmpl",
+                engine: "1340cc",
+                color: "Black",
+                availability: true
+            },
+            {
+                name: "Kawasaki Ninja 400",
+                brand: "Kawasaki",
+                price: 35,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3f87?w=400&h=200&fit=crop",
+                description: "Entry-level sport bike with aggressive styling and accessible performance.",
+                features: ["ABS", "Digital Display", "LED Lights", "Fuel Injection"],
+                mileage: "36 kmpl",
+                engine: "399cc",
+                color: "Green",
+                availability: true
+            },
+            {
+                name: "Triumph Tiger 900",
+                brand: "Triumph",
+                price: 60,
+                fuelType: "Petrol",
+                year: 2023,
+                seats: 2,
+                image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                description: "Adventure touring bike with triple engine and advanced electronics.",
+                features: ["ABS", "Traction Control", "Ride Modes", "Digital Display"],
+                mileage: "29 kmpl",
+                engine: "888cc",
+                color: "White",
+                availability: true
+            }
+        ];
+
+        // Statistics
+        let stats = {
+            total: allBikes.length,
+            added: 0,
+            existing: 0,
+            errors: 0
+        };
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logDiv.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Update status
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Update progress bar
+        function updateProgress(percentage) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = Math.round(percentage) + '%';
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalBikes').textContent = stats.total;
+            document.getElementById('addedBikes').textContent = stats.added;
+            document.getElementById('existingBikes').textContent = stats.existing;
+            document.getElementById('errors').textContent = stats.errors;
+        }
+
+        // Check existing data
+        async function checkExistingData() {
+            try {
+                log('Checking existing bikes in Firestore...');
+                updateStatus('Checking existing data...', 'info');
+                
+                const snapshot = await db.collection('bikes').get();
+                stats.existing = snapshot.size;
+                stats.added = 0;
+                stats.errors = 0;
+                
+                updateStats();
+                updateProgress((stats.existing / stats.total) * 100);
+                
+                if (snapshot.size > 0) {
+                    log(`Found ${snapshot.size} existing bikes in database`);
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        log(`  - ${data.brand} ${data.name} ($${data.price}/day)`);
+                    });
+                    updateStatus(`Found ${snapshot.size} existing bikes. Ready to add more!`, 'warning');
+                } else {
+                    log('No existing bikes found. Ready to add all 25 bikes!');
+                    updateStatus('No existing bikes found. Ready to add all 25 bikes!', 'info');
+                }
+                
+            } catch (error) {
+                log(`Error checking existing data: ${error.message}`, 'error');
+                updateStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Add all bikes
+        async function addAllBikes() {
+            try {
+                log('Starting to add all 25 bikes to Firestore...');
+                updateStatus('Adding all bikes...', 'info');
+                
+                const addBtn = document.getElementById('addBtn');
+                addBtn.disabled = true;
+                addBtn.textContent = 'Adding Bikes...';
+                
+                stats.added = 0;
+                stats.errors = 0;
+                
+                for (let i = 0; i < allBikes.length; i++) {
+                    const bike = allBikes[i];
+                    
+                    try {
+                        // Add timestamp
+                        const bikeData = {
+                            ...bike,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        await db.collection('bikes').add(bikeData);
+                        stats.added++;
+                        
+                        const progress = ((i + 1) / allBikes.length) * 100;
+                        updateProgress(progress);
+                        
+                        log(`Added ${i + 1}/25: ${bike.brand} ${bike.name} ($${bike.price}/day)`, 'success');
+                        
+                        // Small delay to prevent overwhelming Firestore
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                    } catch (error) {
+                        stats.errors++;
+                        log(`Failed to add ${bike.brand} ${bike.name}: ${error.message}`, 'error');
+                    }
+                    
+                    updateStats();
+                }
+                
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add All 25 Bikes';
+                
+                if (stats.errors === 0) {
+                    log(`🎉 Successfully added all ${stats.added} bikes to Firestore!`, 'success');
+                    updateStatus(`🎉 Successfully added all ${stats.added} bikes!`, 'success');
+                } else {
+                    log(`⚠️ Added ${stats.added} bikes with ${stats.errors} errors`, 'warning');
+                    updateStatus(`⚠️ Added ${stats.added} bikes with ${stats.errors} errors`, 'warning');
+                }
+                
+            } catch (error) {
+                log(`Critical error: ${error.message}`, 'error');
+                updateStatus(`Critical error: ${error.message}`, 'error');
+                
+                const addBtn = document.getElementById('addBtn');
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add All 25 Bikes';
+            }
+        }
+
+        // Clear all data
+        async function clearAllData() {
+            if (!confirm('Are you sure you want to clear ALL bikes from Firestore? This cannot be undone!')) {
+                return;
+            }
+            
+            try {
+                log('Clearing all bikes from Firestore...');
+                updateStatus('Clearing all data...', 'warning');
+                
+                const snapshot = await db.collection('bikes').get();
+                const batch = db.batch();
+                
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                
+                stats.added = 0;
+                stats.existing = 0;
+                stats.errors = 0;
+                
+                updateStats();
+                updateProgress(0);
+                
+                log(`🗑️ Cleared ${snapshot.size} bikes from Firestore`, 'success');
+                updateStatus(`🗑️ Cleared ${snapshot.size} bikes from Firestore`, 'success');
+                
+            } catch (error) {
+                log(`Error clearing data: ${error.message}`, 'error');
+                updateStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Refresh statistics
+        function refreshStats() {
+            checkExistingData();
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            log('🚀 Bike Addition Tool Loaded');
+            log(`Ready to add ${allBikes.length} bikes to Firestore`);
+            checkExistingData();
+        };
+    </script>
+</body>
+</html>

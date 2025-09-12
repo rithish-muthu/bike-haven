@@ -1,0 +1,39 @@
+{
+  "name": "bike-haven-showroom",
+  "version": "1.0.0",
+  "description": "A modern bike showroom management system with user authentication, booking system, and admin panel",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8000 -o",
+    "dev": "http-server -p 8000 -o -c-1",
+    "build": "echo 'No build process needed for this static site'",
+    "deploy": "firebase deploy"
+  },
+  "keywords": [
+    "bike",
+    "showroom",
+    "management",
+    "rental",
+    "booking",
+    "firebase",
+    "javascript",
+    "html",
+    "css"
+  ],
+  "author": "Bike Haven Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "firebase": "^9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/bike-haven-showroom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/bike-haven-showroom/issues"
+  },
+  "homepage": "https://github.com/your-username/bike-haven-showroom#readme"
+}

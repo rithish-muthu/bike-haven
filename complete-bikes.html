@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Bike Collection - Bike Haven</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #ff6b35;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            background: #0056b3; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        .progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #ff6b35, #ff8c42);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b35;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .bike-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .bike-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bike-item.missing {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+        .bike-item.exists {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .bike-icon {
+            font-size: 20px;
+        }
+        .bike-info {
+            flex: 1;
+        }
+        .bike-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .bike-details {
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Complete Bike Collection</h1>
+            <p>Check existing bikes and add the missing ones to reach 25 total bikes</p>
+        </div>
+        
+        <div id="status" class="status info">
+            Ready to check and complete bike collection...
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalBikes">25</div>
+                <div class="stat-label">Target Bikes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="existingBikes">0</div>
+                <div class="stat-label">Existing</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="missingBikes">0</div>
+                <div class="stat-label">Missing</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="addedBikes">0</div>
+                <div class="stat-label">Added</div>
+            </div>
+        </div>
+        
+        <div class="progress">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="checkBikes()">Check All Bikes</button>
+            <button onclick="addMissingBikes()" id="addBtn">Add Missing Bikes</button>
+            <button onclick="addAllBikes()" class="btn-warning">Add All 25 Bikes (Overwrite)</button>
+            <button onclick="clearAllBikes()" class="btn-danger">Clear All Bikes</button>
+        </div>
+        
+        <h3>📋 Bike Status:</h3>
+        <div id="bikeList" class="bike-list">
+            <!-- Bike status will be loaded here -->
+        </div>
+        
+        <h3>📝 Operation Log:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAqjE3TmrZyNcJS904Hh8l5NiDLYn6LC6E",
+            authDomain: "bike-haven-29ec7.firebaseapp.com",
+            projectId: "bike-haven-29ec7",
+            storageBucket: "bike-haven-29ec7.firebasestorage.app",
+            messagingSenderId: "42407371897",
+            appId: "1:42407371897:web:feb42c89bd81dc0bad20a8",
+            measurementId: "G-BZ6BB4DC65"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // All 25 bikes that should exist
+        const allBikes = [
+            { name: "KTM Duke 390", brand: "KTM", price: 45 },
+            { name: "Honda CBR 600RR", brand: "Honda", price: 65 },
+            { name: "Yamaha R1", brand: "Yamaha", price: 85 },
+            { name: "Ducati Panigale V4", brand: "Ducati", price: 120 },
+            { name: "Suzuki GSX-R1000", brand: "Suzuki", price: 75 },
+            { name: "Bajaj Pulsar 200NS", brand: "Bajaj", price: 25 },
+            { name: "Kawasaki Ninja 650", brand: "Kawasaki", price: 55 },
+            { name: "Triumph Street Triple 765", brand: "Triumph", price: 70 },
+            { name: "BMW S1000RR", brand: "BMW", price: 95 },
+            { name: "Aprilia RSV4", brand: "Aprilia", price: 90 },
+            { name: "Honda CB650R", brand: "Honda", price: 50 },
+            { name: "Yamaha MT-09", brand: "Yamaha", price: 60 },
+            { name: "KTM RC 390", brand: "KTM", price: 40 },
+            { name: "Ducati Monster 821", brand: "Ducati", price: 80 },
+            { name: "Suzuki V-Strom 650", brand: "Suzuki", price: 45 },
+            { name: "Kawasaki Z900", brand: "Kawasaki", price: 65 },
+            { name: "Triumph Bonneville T120", brand: "Triumph", price: 55 },
+            { name: "BMW R1250GS", brand: "BMW", price: 85 },
+            { name: "Honda Africa Twin", brand: "Honda", price: 70 },
+            { name: "Yamaha FZ-25", brand: "Yamaha", price: 30 },
+            { name: "KTM Adventure 390", brand: "KTM", price: 50 },
+            { name: "Ducati Scrambler 800", brand: "Ducati", price: 75 },
+            { name: "Suzuki Hayabusa", brand: "Suzuki", price: 100 },
+            { name: "Kawasaki Ninja 400", brand: "Kawasaki", price: 35 },
+            { name: "Triumph Tiger 900", brand: "Triumph", price: 60 }
+        ];
+
+        // Statistics
+        let stats = {
+            total: allBikes.length,
+            existing: 0,
+            missing: 0,
+            added: 0
+        };
+
+        // Bike status tracking
+        let bikeStatus = {};
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logDiv.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Update status
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Update progress bar
+        function updateProgress(percentage) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = Math.round(percentage) + '%';
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalBikes').textContent = stats.total;
+            document.getElementById('existingBikes').textContent = stats.existing;
+            document.getElementById('missingBikes').textContent = stats.missing;
+            document.getElementById('addedBikes').textContent = stats.added;
+        }
+
+        // Render bike list
+        function renderBikeList() {
+            const bikeListDiv = document.getElementById('bikeList');
+            bikeListDiv.innerHTML = '';
+            
+            allBikes.forEach((bike, index) => {
+                const bikeItem = document.createElement('div');
+                const status = bikeStatus[bike.name] || 'missing';
+                const icon = status === 'exists' ? '🏍️' : '❌';
+                const className = status === 'exists' ? 'exists' : 'missing';
+                
+                bikeItem.className = `bike-item ${className}`;
+                bikeItem.innerHTML = `
+                    <div class="bike-icon">${icon}</div>
+                    <div class="bike-info">
+                        <div class="bike-name">${bike.brand} ${bike.name}</div>
+                        <div class="bike-details">$${bike.price}/day • ${status.toUpperCase()}</div>
+                    </div>
+                `;
+                bikeListDiv.appendChild(bikeItem);
+            });
+        }
+
+        // Check all bikes
+        async function checkBikes() {
+            try {
+                log('Checking all bikes in Firestore...');
+                updateStatus('Checking bikes...', 'info');
+                
+                const snapshot = await db.collection('bikes').get();
+                const existingBikes = new Set();
+                
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    const bikeName = `${data.brand} ${data.name}`;
+                    existingBikes.add(bikeName);
+                    bikeStatus[data.name] = 'exists';
+                });
+                
+                // Check which bikes are missing
+                allBikes.forEach(bike => {
+                    const bikeName = `${bike.brand} ${bike.name}`;
+                    if (!existingBikes.has(bikeName)) {
+                        bikeStatus[bike.name] = 'missing';
+                    }
+                });
+                
+                stats.existing = existingBikes.size;
+                stats.missing = allBikes.length - existingBikes.size;
+                stats.added = 0;
+                
+                updateStats();
+                updateProgress((stats.existing / stats.total) * 100);
+                renderBikeList();
+                
+                log(`Found ${stats.existing} existing bikes, ${stats.missing} missing bikes`);
+                
+                if (stats.missing === 0) {
+                    updateStatus(`✅ All ${stats.total} bikes are present!`, 'success');
+                } else {
+                    updateStatus(`⚠️ Missing ${stats.missing} bikes. Ready to add them!`, 'warning');
+                }
+                
+            } catch (error) {
+                log(`Error checking bikes: ${error.message}`, 'error');
+                updateStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Add missing bikes
+        async function addMissingBikes() {
+            try {
+                log('Adding missing bikes to Firestore...');
+                updateStatus('Adding missing bikes...', 'info');
+                
+                const addBtn = document.getElementById('addBtn');
+                addBtn.disabled = true;
+                addBtn.textContent = 'Adding...';
+                
+                const missingBikes = allBikes.filter(bike => bikeStatus[bike.name] === 'missing');
+                
+                for (let i = 0; i < missingBikes.length; i++) {
+                    const bike = missingBikes[i];
+                    
+                    try {
+                        const bikeData = {
+                            name: bike.name,
+                            brand: bike.brand,
+                            price: bike.price,
+                            fuelType: "Petrol",
+                            year: 2023,
+                            seats: 2,
+                            image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                            description: `${bike.brand} ${bike.name} - High performance motorcycle with excellent features.`,
+                            features: ["ABS", "LED Lights", "Digital Display"],
+                            mileage: "30 kmpl",
+                            engine: "600cc",
+                            color: "Black",
+                            availability: true,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        await db.collection('bikes').add(bikeData);
+                        bikeStatus[bike.name] = 'exists';
+                        stats.added++;
+                        stats.missing--;
+                        stats.existing++;
+                        
+                        const progress = ((stats.existing) / stats.total) * 100;
+                        updateProgress(progress);
+                        
+                        log(`Added: ${bike.brand} ${bike.name} ($${bike.price}/day)`, 'success');
+                        
+                        updateStats();
+                        renderBikeList();
+                        
+                        // Small delay to prevent overwhelming Firestore
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        
+                    } catch (error) {
+                        log(`Failed to add ${bike.brand} ${bike.name}: ${error.message}`, 'error');
+                    }
+                }
+                
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add Missing Bikes';
+                
+                if (stats.missing === 0) {
+                    log(`🎉 Successfully added all missing bikes! Total: ${stats.existing}/${stats.total}`, 'success');
+                    updateStatus(`🎉 All ${stats.total} bikes are now present!`, 'success');
+                } else {
+                    log(`⚠️ Added ${stats.added} bikes, ${stats.missing} still missing`, 'warning');
+                    updateStatus(`⚠️ Added ${stats.added} bikes, ${stats.missing} still missing`, 'warning');
+                }
+                
+            } catch (error) {
+                log(`Critical error: ${error.message}`, 'error');
+                updateStatus(`Critical error: ${error.message}`, 'error');
+                
+                const addBtn = document.getElementById('addBtn');
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add Missing Bikes';
+            }
+        }
+
+        // Add all bikes (overwrite)
+        async function addAllBikes() {
+            if (!confirm('This will add ALL 25 bikes. Some may be duplicates. Continue?')) {
+                return;
+            }
+            
+            try {
+                log('Adding all 25 bikes to Firestore...');
+                updateStatus('Adding all bikes...', 'info');
+                
+                const addBtn = document.getElementById('addBtn');
+                addBtn.disabled = true;
+                addBtn.textContent = 'Adding All...';
+                
+                stats.added = 0;
+                
+                for (let i = 0; i < allBikes.length; i++) {
+                    const bike = allBikes[i];
+                    
+                    try {
+                        const bikeData = {
+                            name: bike.name,
+                            brand: bike.brand,
+                            price: bike.price,
+                            fuelType: "Petrol",
+                            year: 2023,
+                            seats: 2,
+                            image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=200&fit=crop",
+                            description: `${bike.brand} ${bike.name} - High performance motorcycle with excellent features.`,
+                            features: ["ABS", "LED Lights", "Digital Display"],
+                            mileage: "30 kmpl",
+                            engine: "600cc",
+                            color: "Black",
+                            availability: true,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        await db.collection('bikes').add(bikeData);
+                        stats.added++;
+                        
+                        const progress = ((i + 1) / allBikes.length) * 100;
+                        updateProgress(progress);
+                        
+                        log(`Added ${i + 1}/25: ${bike.brand} ${bike.name}`, 'success');
+                        
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        
+                    } catch (error) {
+                        log(`Failed to add ${bike.brand} ${bike.name}: ${error.message}`, 'error');
+                    }
+                }
+                
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add Missing Bikes';
+                
+                log(`🎉 Added ${stats.added} bikes to Firestore!`, 'success');
+                updateStatus(`🎉 Added ${stats.added} bikes!`, 'success');
+                
+                // Refresh the check
+                await checkBikes();
+                
+            } catch (error) {
+                log(`Critical error: ${error.message}`, 'error');
+                updateStatus(`Critical error: ${error.message}`, 'error');
+                
+                const addBtn = document.getElementById('addBtn');
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add Missing Bikes';
+            }
+        }
+
+        // Clear all bikes
+        async function clearAllBikes() {
+            if (!confirm('Are you sure you want to clear ALL bikes from Firestore?')) {
+                return;
+            }
+            
+            try {
+                log('Clearing all bikes...');
+                updateStatus('Clearing all bikes...', 'warning');
+                
+                const snapshot = await db.collection('bikes').get();
+                const batch = db.batch();
+                
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                
+                stats.existing = 0;
+                stats.missing = stats.total;
+                stats.added = 0;
+                
+                updateStats();
+                updateProgress(0);
+                renderBikeList();
+                
+                log(`🗑️ Cleared ${snapshot.size} bikes from Firestore`, 'success');
+                updateStatus(`🗑️ Cleared ${snapshot.size} bikes`, 'success');
+                
+            } catch (error) {
+                log(`Error clearing bikes: ${error.message}`, 'error');
+                updateStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            log('🚀 Bike Collection Tool Loaded');
+            log('Ready to check and complete your bike collection');
+            checkBikes();
+        };
+    </script>
+</body>
+</html>
