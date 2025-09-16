@@ -1,15 +1,17 @@
+// Bike Haven - Premium Motorcycle Showroom
+// Complete showroom management system
+
 // Global variables
 let currentUser = null;
-let bikes = [];
-let filteredBikes = [];
-let currentBikeId = null;
-let isAdmin = false;
+let motorcycles = [];
+let currentMotorcycleId = null;
 
 // DOM elements
 const elements = {
     // Navigation
-    navMenu: document.querySelector('.nav-menu'),
-    hamburger: document.querySelector('.hamburger'),
+    navbar: document.getElementById('navbar'),
+    navMenu: document.getElementById('navMenu'),
+    navToggle: document.getElementById('navToggle'),
     loginBtn: document.getElementById('loginBtn'),
     registerBtn: document.getElementById('registerBtn'),
     userMenu: document.getElementById('userMenu'),
@@ -19,24 +21,22 @@ const elements = {
     // Modals
     loginModal: document.getElementById('loginModal'),
     registerModal: document.getElementById('registerModal'),
-    bookingModal: document.getElementById('bookingModal'),
+    orderModal: document.getElementById('orderModal'),
+    ordersModal: document.getElementById('ordersModal'),
     profileModal: document.getElementById('profileModal'),
-    bookingsModal: document.getElementById('bookingsModal'),
     
     // Forms
     loginForm: document.getElementById('loginForm'),
     registerForm: document.getElementById('registerForm'),
-    bookingForm: document.getElementById('bookingForm'),
     profileForm: document.getElementById('profileForm'),
     contactForm: document.getElementById('contactForm'),
     
-    // Bike listing
-    bikesGrid: document.getElementById('bikesGrid'),
+    // Motorcycle listing
+    motorcyclesGrid: document.getElementById('motorcyclesGrid'),
     searchInput: document.getElementById('searchInput'),
     brandFilter: document.getElementById('brandFilter'),
-    fuelFilter: document.getElementById('fuelFilter'),
+    typeFilter: document.getElementById('typeFilter'),
     priceFilter: document.getElementById('priceFilter'),
-    loadMoreBtn: document.getElementById('loadMoreBtn'),
     
     // Admin panel
     adminPanel: document.getElementById('adminPanel'),
@@ -45,247 +45,188 @@ const elements = {
     exitAdmin: document.getElementById('exitAdmin'),
     
     // Other
-    testimonialsSlider: document.getElementById('testimonialsSlider'),
-    bookingsList: document.getElementById('bookingsList')
+    ordersList: document.getElementById('ordersList')
 };
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async function() {
-    initializeApp();
-    setupEventListeners();
-    checkAuthState();
+    console.log('Bike Haven Showroom - Initializing...');
     
-    // Initialize sample data if needed, then load bikes
-    await initializeSampleData();
-    await loadBikes();
-    await loadTestimonials();
+    try {
+        // Initialize Firebase
+        await initializeFirebase();
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+        // Load initial data
+        await loadMotorcycles();
+        await loadBrands();
+        
+        // Check authentication
+        firebase.auth().onAuthStateChanged(handleAuthStateChange);
+        
+        console.log('Bike Haven Showroom - Initialized successfully');
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        showMessage('Error initializing application. Please refresh the page.', 'error');
+    }
 });
 
-// Initialize application
-function initializeApp() {
-    // Add scroll effect to navbar
-    window.addEventListener('scroll', function() {
-        const navbar = document.querySelector('.navbar');
-        if (window.scrollY > 100) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-    });
-
-    // Add smooth scrolling to navigation links (only for valid targets)
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            const href = this.getAttribute('href');
-            // Only handle valid selectors (not just "#")
-            if (href && href.length > 1) {
-                e.preventDefault();
-                const target = document.querySelector(href);
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            }
-        });
-    });
-
-    // Initialize mobile menu
-    elements.hamburger.addEventListener('click', toggleMobileMenu);
-    
-    // Close mobile menu when clicking on links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', () => {
-            elements.navMenu.classList.remove('active');
-        });
-    });
+// Initialize Firebase
+async function initializeFirebase() {
+    try {
+        // Firebase is already initialized in firebase-config.js
+        console.log('Firebase initialized');
+    } catch (error) {
+        console.error('Firebase initialization error:', error);
+        throw error;
+    }
 }
 
 // Setup event listeners
 function setupEventListeners() {
-    // Modal controls
-    setupModalControls();
+    // Navigation
+    elements.navToggle.addEventListener('click', toggleMobileMenu);
     
-    // Form submissions
-    setupFormSubmissions();
+    // Authentication
+    elements.loginBtn.addEventListener('click', () => showModal(elements.loginModal));
+    elements.registerBtn.addEventListener('click', () => showModal(elements.registerModal));
+    elements.logoutBtn.addEventListener('click', handleLogout);
     
-    // Search and filters
-    setupSearchAndFilters();
+    // Modal switches
+    document.getElementById('switchToRegister').addEventListener('click', (e) => {
+        e.preventDefault();
+        hideModal(elements.loginModal);
+        showModal(elements.registerModal);
+    });
     
-    // Admin panel
-    setupAdminPanel();
+    document.getElementById('switchToLogin').addEventListener('click', (e) => {
+        e.preventDefault();
+        hideModal(elements.registerModal);
+        showModal(elements.loginModal);
+    });
+    
+    // Forms
+    elements.loginForm.addEventListener('submit', handleLogin);
+    elements.registerForm.addEventListener('submit', handleRegister);
+    elements.profileForm.addEventListener('submit', handleProfileUpdate);
+    elements.contactForm.addEventListener('submit', handleContact);
     
     // User menu
-    setupUserMenu();
-}
-
-// Setup modal controls
-function setupModalControls() {
-    // Close modals when clicking outside
-    window.addEventListener('click', function(event) {
-        if (event.target.classList.contains('modal')) {
-            closeAllModals();
-        }
-    });
-
-    // Close modals with close buttons
-    document.querySelectorAll('.close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', closeAllModals);
-    });
-
-    // Switch between login and register modals
-    document.getElementById('switchToRegister').addEventListener('click', function(e) {
+    document.getElementById('myOrdersBtn').addEventListener('click', (e) => {
         e.preventDefault();
-        closeAllModals();
-        elements.registerModal.style.display = 'block';
+        hideAllModals();
+        showModal(elements.ordersModal);
+        loadUserOrders();
     });
-
-    document.getElementById('switchToLogin').addEventListener('click', function(e) {
+    
+    document.getElementById('profileBtn').addEventListener('click', (e) => {
         e.preventDefault();
-        closeAllModals();
-        elements.loginModal.style.display = 'block';
-    });
-}
-
-// Setup form submissions
-function setupFormSubmissions() {
-    // Login form
-    elements.loginForm.addEventListener('submit', handleLogin);
-    
-    // Register form
-    elements.registerForm.addEventListener('submit', handleRegister);
-    
-    // Booking form
-    elements.bookingForm.addEventListener('submit', handleBooking);
-    
-    // Profile form
-    elements.profileForm.addEventListener('submit', handleProfileUpdate);
-    
-    // Contact form
-    elements.contactForm.addEventListener('submit', handleContact);
-}
-
-// Setup search and filters
-function setupSearchAndFilters() {
-    elements.searchInput.addEventListener('input', filterBikes);
-    elements.brandFilter.addEventListener('change', filterBikes);
-    elements.fuelFilter.addEventListener('change', filterBikes);
-    elements.priceFilter.addEventListener('change', filterBikes);
-    elements.loadMoreBtn.addEventListener('click', loadMoreBikes);
-}
-
-// Setup admin panel
-function setupAdminPanel() {
-    elements.exitAdmin.addEventListener('click', function() {
-        elements.adminPanel.style.display = 'none';
-    });
-
-    // Admin menu navigation
-    document.querySelectorAll('.admin-menu a').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const section = this.getAttribute('data-section');
-            showAdminSection(section);
-            
-            // Update active menu item
-            document.querySelectorAll('.admin-menu a').forEach(a => a.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-}
-
-// Setup user menu
-function setupUserMenu() {
-    elements.logoutBtn.addEventListener('click', handleLogout);
-    document.getElementById('myBookingsBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        closeAllModals();
-        elements.bookingsModal.style.display = 'block';
-        loadUserBookings();
-    });
-    document.getElementById('profileBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        closeAllModals();
-        elements.profileModal.style.display = 'block';
+        hideAllModals();
+        showModal(elements.profileModal);
         loadUserProfile();
     });
+    
+    // Filters
+    elements.searchInput.addEventListener('input', filterMotorcycles);
+    elements.brandFilter.addEventListener('change', filterMotorcycles);
+    elements.typeFilter.addEventListener('change', filterMotorcycles);
+    elements.priceFilter.addEventListener('change', filterMotorcycles);
+    
+    // Admin panel
+    elements.exitAdmin.addEventListener('click', hideAdminPanel);
+    
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+    
+    // Navbar scroll effect
+    window.addEventListener('scroll', handleNavbarScroll);
+    
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            hideModal(e.target);
+        }
+    });
+}
+
+// Handle navbar scroll effect
+function handleNavbarScroll() {
+    if (window.scrollY > 100) {
+        elements.navbar.classList.add('scrolled');
+    } else {
+        elements.navbar.classList.remove('scrolled');
+    }
 }
 
 // Toggle mobile menu
 function toggleMobileMenu() {
     elements.navMenu.classList.toggle('active');
-    elements.hamburger.classList.toggle('active');
+    elements.navToggle.classList.toggle('active');
 }
 
-// Close all modals
-function closeAllModals() {
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.style.display = 'none';
-    });
-}
-
-// Check authentication state
-function checkAuthState() {
-    auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-            showUserMenu();
-            checkAdminStatus(user.uid);
-        } else {
-            showGuestMenu();
-        }
-    });
-}
-
-// Check if user is admin
-async function checkAdminStatus(uid) {
-    try {
-        const userDoc = await db.collection('users').doc(uid).get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            isAdmin = userData.isAdmin || false;
-            
-            if (isAdmin) {
-                showAdminAccess();
-            }
-        }
-    } catch (error) {
-        console.error('Error checking admin status:', error);
+// Scroll to section
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
     }
 }
 
-// Show user menu
-function showUserMenu() {
-    elements.loginBtn.style.display = 'none';
-    elements.registerBtn.style.display = 'none';
-    elements.userMenu.style.display = 'block';
-    elements.userName.textContent = currentUser.displayName || currentUser.email;
+// Modal functions
+function showModal(modal) {
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
 }
 
-// Show guest menu
-function showGuestMenu() {
-    elements.loginBtn.style.display = 'block';
-    elements.registerBtn.style.display = 'block';
-    elements.userMenu.style.display = 'none';
-    isAdmin = false;
+function hideModal(modal) {
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
 }
 
-// Show admin access
-function showAdminAccess() {
-    const adminLink = document.createElement('li');
-    adminLink.className = 'nav-item';
-    adminLink.innerHTML = '<a href="#" class="nav-link" id="adminBtn">Admin Panel</a>';
-    elements.navMenu.appendChild(adminLink);
-    
-    document.getElementById('adminBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        elements.adminPanel.style.display = 'flex';
-        showAdminSection('dashboard');
-    });
+function hideAllModals() {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => hideModal(modal));
 }
 
-// Handle login
+function closeModal(element) {
+    const modal = element.closest('.modal');
+    hideModal(modal);
+}
+
+// Authentication functions
+function handleAuthStateChange(user) {
+    currentUser = user;
+    updateAuthUI();
+}
+
+function updateAuthUI() {
+    if (currentUser) {
+        elements.loginBtn.style.display = 'none';
+        elements.registerBtn.style.display = 'none';
+        elements.userMenu.style.display = 'block';
+        elements.userName.textContent = currentUser.displayName || 'User';
+    } else {
+        elements.loginBtn.style.display = 'inline-flex';
+        elements.registerBtn.style.display = 'inline-flex';
+        elements.userMenu.style.display = 'none';
+    }
+}
+
 async function handleLogin(e) {
     e.preventDefault();
     
@@ -293,24 +234,24 @@ async function handleLogin(e) {
     const password = document.getElementById('loginPassword').value;
     
     try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        await firebase.auth().signInWithEmailAndPassword(email, password);
+        hideModal(elements.loginModal);
         showMessage('Login successful!', 'success');
-        closeAllModals();
-        elements.loginForm.reset();
     } catch (error) {
+        console.error('Login error:', error);
         showMessage('Login failed: ' + error.message, 'error');
     }
 }
 
-// Handle register
 async function handleRegister(e) {
     e.preventDefault();
     
-    const name = document.getElementById('registerName').value;
+    const firstName = document.getElementById('registerFirstName').value;
+    const lastName = document.getElementById('registerLastName').value;
     const email = document.getElementById('registerEmail').value;
+    const phone = document.getElementById('registerPhone').value;
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
-    const phone = document.getElementById('registerPhone').value;
     
     if (password !== confirmPassword) {
         showMessage('Passwords do not match!', 'error');
@@ -318,97 +259,572 @@ async function handleRegister(e) {
     }
     
     try {
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        await userCredential.user.updateProfile({ displayName: name });
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        await userCredential.user.updateProfile({
+            displayName: `${firstName} ${lastName}`
+        });
         
         // Save user data to Firestore
         await db.collection('users').doc(userCredential.user.uid).set({
-            name: name,
-            email: email,
-            phone: phone,
-            isAdmin: false,
+            firstName,
+            lastName,
+            email,
+            phone,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
+        hideModal(elements.registerModal);
         showMessage('Registration successful!', 'success');
-        closeAllModals();
-        elements.registerForm.reset();
     } catch (error) {
+        console.error('Registration error:', error);
         showMessage('Registration failed: ' + error.message, 'error');
     }
 }
 
-// Handle logout
 async function handleLogout() {
     try {
-        await auth.signOut();
+        await firebase.auth().signOut();
+        hideAllModals();
         showMessage('Logged out successfully!', 'success');
-        elements.adminPanel.style.display = 'none';
     } catch (error) {
+        console.error('Logout error:', error);
         showMessage('Logout failed: ' + error.message, 'error');
     }
 }
 
-// Handle booking
-async function handleBooking(e) {
-    e.preventDefault();
+// Load motorcycles
+async function loadMotorcycles() {
+    try {
+        console.log('Loading motorcycles...');
+        const snapshot = await db.collection('motorcycles').get();
+        motorcycles = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        console.log(`Loaded ${motorcycles.length} motorcycles`);
+        renderMotorcycles(motorcycles);
+    } catch (error) {
+        console.error('Error loading motorcycles:', error);
+        showMessage('Error loading motorcycles. Please try again.', 'error');
+    }
+}
+
+// Load brands for filter
+async function loadBrands() {
+    try {
+        const brands = [...new Set(motorcycles.map(motorcycle => motorcycle.brand))];
+        brands.sort();
+        
+        const brandFilter = document.getElementById('brandFilter');
+        brandFilter.innerHTML = '<option value="">All Brands</option>';
+        
+        brands.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand;
+            option.textContent = brand;
+            brandFilter.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading brands:', error);
+    }
+}
+
+// Render motorcycles
+function renderMotorcycles(motorcyclesToRender) {
+    if (!elements.motorcyclesGrid) return;
     
-    if (!currentUser) {
-        showMessage('Please login to book a bike!', 'error');
-        elements.loginModal.style.display = 'block';
+    elements.motorcyclesGrid.innerHTML = '';
+    
+    if (motorcyclesToRender.length === 0) {
+        elements.motorcyclesGrid.innerHTML = '<div class="message">No motorcycles found matching your criteria.</div>';
         return;
     }
     
-    const fromDate = document.getElementById('bookingFromDate').value;
-    const toDate = document.getElementById('bookingToDate').value;
-    const message = document.getElementById('bookingMessage').value;
+    motorcyclesToRender.forEach(motorcycle => {
+        const motorcycleCard = createMotorcycleCard(motorcycle);
+        elements.motorcyclesGrid.appendChild(motorcycleCard);
+    });
+}
+
+// Create motorcycle card
+function createMotorcycleCard(motorcycle) {
+    const card = document.createElement('div');
+    card.className = 'motorcycle-card';
     
-    if (new Date(fromDate) >= new Date(toDate)) {
-        showMessage('End date must be after start date!', 'error');
+    card.innerHTML = `
+        <div class="motorcycle-image">
+            ${motorcycle.image ? 
+                `<img src="${motorcycle.image}" alt="${motorcycle.name}" onerror="handleImageError(this)">` :
+                `<i class="fas fa-motorcycle"></i>`
+            }
+            <div class="motorcycle-badge ${motorcycle.availability}">
+                ${motorcycle.availability === 'available' ? 'In Stock' : 
+                  motorcycle.availability === 'sold' ? 'Sold' : 'Out of Stock'}
+            </div>
+        </div>
+        <div class="motorcycle-content">
+            <div class="motorcycle-brand">${motorcycle.brand}</div>
+            <h3 class="motorcycle-name">${motorcycle.name}</h3>
+            <div class="motorcycle-price">$${motorcycle.price.toLocaleString()}</div>
+            <div class="motorcycle-features">
+                <div class="motorcycle-feature">
+                    <i class="fas fa-calendar"></i>
+                    <span>${motorcycle.year || '2024'}</span>
+                </div>
+                <div class="motorcycle-feature">
+                    <i class="fas fa-user"></i>
+                    <span>${motorcycle.seats || 2} seats</span>
+                </div>
+                <div class="motorcycle-feature">
+                    <i class="fas fa-gas-pump"></i>
+                    <span>${motorcycle.fuelType || 'Petrol'}</span>
+                </div>
+                <div class="motorcycle-feature">
+                    <i class="fas fa-cog"></i>
+                    <span>${motorcycle.engine || 'N/A'}cc</span>
+                </div>
+            </div>
+            <p class="motorcycle-description">${motorcycle.description || 'Premium motorcycle with excellent performance and reliability.'}</p>
+            <div class="motorcycle-actions">
+                ${motorcycle.availability === 'available' ? 
+                    `<button class="btn btn-primary" onclick="openOrderModal('${motorcycle.id}')">
+                        <i class="fas fa-shopping-cart"></i> Order Now
+                    </button>` :
+                    `<button class="btn btn-secondary" disabled>
+                        <i class="fas fa-times"></i> Not Available
+                    </button>`
+                }
+                <button class="btn btn-outline" onclick="openInquiryModal('${motorcycle.id}')">
+                    <i class="fas fa-info-circle"></i> Inquire
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Handle image error
+function handleImageError(img) {
+    img.style.display = 'none';
+    const icon = img.parentElement.querySelector('i');
+    if (icon) {
+        icon.style.display = 'block';
+    }
+}
+
+// Filter motorcycles
+function filterMotorcycles() {
+    const searchTerm = elements.searchInput.value.toLowerCase();
+    const selectedBrand = elements.brandFilter.value;
+    const selectedType = elements.typeFilter.value;
+    const selectedPrice = elements.priceFilter.value;
+    
+    let filteredMotorcycles = motorcycles.filter(motorcycle => {
+        const matchesSearch = motorcycle.name.toLowerCase().includes(searchTerm) ||
+                            motorcycle.brand.toLowerCase().includes(searchTerm) ||
+                            (motorcycle.description && motorcycle.description.toLowerCase().includes(searchTerm));
+        
+        const matchesBrand = !selectedBrand || motorcycle.brand === selectedBrand;
+        
+        const matchesType = !selectedType || motorcycle.type === selectedType;
+        
+        let matchesPrice = true;
+        if (selectedPrice) {
+            const price = motorcycle.price;
+            switch (selectedPrice) {
+                case '0-10000':
+                    matchesPrice = price < 10000;
+                    break;
+                case '10000-25000':
+                    matchesPrice = price >= 10000 && price <= 25000;
+                    break;
+                case '25000-50000':
+                    matchesPrice = price >= 25000 && price <= 50000;
+                    break;
+                case '50000+':
+                    matchesPrice = price > 50000;
+                    break;
+            }
+        }
+        
+        return matchesSearch && matchesBrand && matchesType && matchesPrice;
+    });
+    
+    renderMotorcycles(filteredMotorcycles);
+}
+
+// Open order modal
+function openOrderModal(motorcycleId) {
+    console.log('Opening order modal for motorcycle:', motorcycleId);
+    
+    const motorcycle = motorcycles.find(m => m.id === motorcycleId);
+    if (!motorcycle) {
+        showMessage('Motorcycle not found!', 'error');
         return;
     }
+    
+    if (motorcycle.availability !== 'available') {
+        showMessage('This motorcycle is not available for order!', 'error');
+        return;
+    }
+    
+    currentMotorcycleId = motorcycleId;
+    
+    const orderModalBody = document.getElementById('orderModalBody');
+    orderModalBody.innerHTML = `
+        <div class="motorcycle-order-info">
+            <img src="${motorcycle.image || ''}" alt="${motorcycle.name}" onerror="handleImageError(this)">
+            <div class="motorcycle-details">
+                <h4>${motorcycle.name}</h4>
+                <p class="brand">${motorcycle.brand}</p>
+                <p class="price">$${motorcycle.price.toLocaleString()}</p>
+            </div>
+        </div>
+        
+        <form id="orderForm">
+            <div class="form-section">
+                <h4>Customer Information</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="orderFirstName">First Name</label>
+                        <input type="text" id="orderFirstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="orderLastName">Last Name</label>
+                        <input type="text" id="orderLastName" name="lastName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="orderEmail">Email</label>
+                        <input type="email" id="orderEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="orderPhone">Phone Number</label>
+                        <input type="tel" id="orderPhone" name="phone" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="orderAddress">Address</label>
+                    <textarea id="orderAddress" name="address" rows="3" required placeholder="Enter your full address"></textarea>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Payment Information</h4>
+                <div class="form-group">
+                    <label for="paymentMethod">Payment Method</label>
+                    <select id="paymentMethod" name="paymentMethod" required>
+                        <option value="">Select Payment Method</option>
+                        <option value="cash">Cash on Delivery</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="financing">Financing (0% APR)</option>
+                        <option value="credit_card">Credit Card</option>
+                    </select>
+                </div>
+                <div class="form-group" id="financingInfo" style="display: none;">
+                    <label for="downPayment">Down Payment ($)</label>
+                    <input type="number" id="downPayment" name="downPayment" min="0" max="${motorcycle.price}" value="${Math.floor(motorcycle.price * 0.1)}">
+                    <small>Minimum 10% down payment required</small>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Order Summary</h4>
+                <div class="order-summary">
+                    <div class="summary-row">
+                        <span>Motorcycle:</span>
+                        <span>${motorcycle.name} - ${motorcycle.brand}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Price:</span>
+                        <span>$${motorcycle.price.toLocaleString()}</span>
+                    </div>
+                    <div class="summary-row" id="downPaymentRow" style="display: none;">
+                        <span>Down Payment:</span>
+                        <span id="downPaymentAmount">$0</span>
+                    </div>
+                    <div class="summary-row" id="financingRow" style="display: none;">
+                        <span>Financing Amount:</span>
+                        <span id="financingAmount">$0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total Amount:</span>
+                        <span id="totalAmount">$${motorcycle.price.toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-shopping-cart"></i> Place Order
+                </button>
+            </div>
+        </form>
+    `;
+    
+    // Setup payment method change handler
+    const paymentMethod = document.getElementById('paymentMethod');
+    const financingInfo = document.getElementById('financingInfo');
+    const downPaymentRow = document.getElementById('downPaymentRow');
+    const financingRow = document.getElementById('financingRow');
+    const downPaymentAmount = document.getElementById('downPaymentAmount');
+    const financingAmount = document.getElementById('financingAmount');
+    const totalAmount = document.getElementById('totalAmount');
+    const downPaymentInput = document.getElementById('downPayment');
+    
+    paymentMethod.addEventListener('change', function() {
+        if (this.value === 'financing') {
+            financingInfo.style.display = 'block';
+            downPaymentRow.style.display = 'flex';
+            financingRow.style.display = 'flex';
+            updateOrderSummary();
+        } else {
+            financingInfo.style.display = 'none';
+            downPaymentRow.style.display = 'none';
+            financingRow.style.display = 'none';
+            totalAmount.textContent = `$${motorcycle.price.toLocaleString()}`;
+        }
+    });
+    
+    downPaymentInput.addEventListener('input', updateOrderSummary);
+    
+    function updateOrderSummary() {
+        const downPayment = parseFloat(downPaymentInput.value) || 0;
+        const financing = motorcycle.price - downPayment;
+        
+        downPaymentAmount.textContent = `$${downPayment.toLocaleString()}`;
+        financingAmount.textContent = `$${financing.toLocaleString()}`;
+        totalAmount.textContent = `$${motorcycle.price.toLocaleString()}`;
+    }
+    
+    // Setup form submission
+    document.getElementById('orderForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (motorcycle.availability !== 'available') {
+            showMessage('Sorry, this motorcycle is not available for order.', 'error');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const orderData = {
+            motorcycleId: motorcycleId,
+            motorcycleName: motorcycle.name,
+            motorcycleBrand: motorcycle.brand,
+            motorcyclePrice: motorcycle.price,
+            customerFirstName: formData.get('firstName'),
+            customerLastName: formData.get('lastName'),
+            customerEmail: formData.get('email'),
+            customerPhone: formData.get('phone'),
+            customerAddress: formData.get('address'),
+            paymentMethod: formData.get('paymentMethod'),
+            downPayment: formData.get('paymentMethod') === 'financing' ? parseFloat(formData.get('downPayment')) : 0,
+            financingAmount: formData.get('paymentMethod') === 'financing' ? motorcycle.price - parseFloat(formData.get('downPayment')) : 0,
+            orderStatus: 'pending',
+            orderDate: new Date().toISOString(),
+            orderNumber: 'ORD-' + Date.now()
+        };
+        
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.disabled = true;
+        
+        try {
+            await db.collection('orders').add(orderData);
+            
+            // Update motorcycle availability to 'sold' if it's a cash or bank transfer order
+            if (orderData.paymentMethod === 'cash' || orderData.paymentMethod === 'bank_transfer') {
+                await db.collection('motorcycles').doc(motorcycleId).update({
+                    availability: 'sold',
+                    soldDate: new Date().toISOString(),
+                    soldTo: `${orderData.customerFirstName} ${orderData.customerLastName}`
+                });
+            }
+            
+            showMessage(`Order placed successfully! Your order number is ${orderData.orderNumber}. We will contact you soon to confirm the details.`, 'success');
+            closeModal(document.getElementById('orderModal'));
+            loadMotorcycles(); // Reload motorcycles to update availability
+        } catch (error) {
+            console.error('Error placing order:', error);
+            showMessage('Error placing order. Please try again.', 'error');
+        } finally {
+            // Restore button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+    
+    showModal(elements.orderModal);
+}
+
+// Open inquiry modal
+function openInquiryModal(motorcycleId) {
+    const motorcycle = motorcycles.find(m => m.id === motorcycleId);
+    if (!motorcycle) {
+        showMessage('Motorcycle not found!', 'error');
+        return;
+    }
+    
+    const inquiryModal = document.createElement('div');
+    inquiryModal.className = 'modal';
+    inquiryModal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Inquiry about ${motorcycle.name}</h2>
+                <span class="close" onclick="closeModal(this)">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="motorcycle-inquiry-info">
+                    <img src="${motorcycle.image || ''}" alt="${motorcycle.name}" onerror="handleImageError(this)">
+                    <div class="motorcycle-details">
+                        <h4>${motorcycle.name}</h4>
+                        <p class="brand">${motorcycle.brand}</p>
+                        <p class="price">$${motorcycle.price.toLocaleString()}</p>
+                    </div>
+                </div>
+                
+                <form id="inquiryForm">
+                    <div class="form-group">
+                        <label for="inquiryName">Name</label>
+                        <input type="text" id="inquiryName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inquiryEmail">Email</label>
+                        <input type="email" id="inquiryEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inquiryPhone">Phone</label>
+                        <input type="tel" id="inquiryPhone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="inquiryMessage">Message</label>
+                        <textarea id="inquiryMessage" name="message" rows="4" required placeholder="What would you like to know about this motorcycle?"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Inquiry</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(inquiryModal);
+    showModal(inquiryModal);
+    
+    // Setup form submission
+    document.getElementById('inquiryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const inquiryData = {
+            motorcycleId: motorcycleId,
+            motorcycleName: motorcycle.name,
+            customerName: formData.get('name'),
+            customerEmail: formData.get('email'),
+            customerPhone: formData.get('phone'),
+            message: formData.get('message'),
+            status: 'new',
+            createdAt: new Date().toISOString()
+        };
+        
+        try {
+            await db.collection('inquiries').add(inquiryData);
+            showMessage('Inquiry sent successfully! We will contact you soon.', 'success');
+            closeModal(inquiryModal);
+        } catch (error) {
+            console.error('Error sending inquiry:', error);
+            showMessage('Error sending inquiry. Please try again.', 'error');
+        }
+    });
+}
+
+// Load user orders
+async function loadUserOrders() {
+    if (!currentUser) return;
     
     try {
-        await db.collection('bookings').add({
-            userId: currentUser.uid,
-            bikeId: currentBikeId,
-            fromDate: fromDate,
-            toDate: toDate,
-            message: message,
-            status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const snapshot = await db.collection('orders')
+            .where('customerEmail', '==', currentUser.email)
+            .orderBy('orderDate', 'desc')
+            .get();
         
-        showMessage('Booking submitted successfully!', 'success');
-        closeAllModals();
-        elements.bookingForm.reset();
+        const orders = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        if (orders.length === 0) {
+            elements.ordersList.innerHTML = '<div class="message">No orders found.</div>';
+            return;
+        }
+        
+        elements.ordersList.innerHTML = '';
+        orders.forEach(order => {
+            const orderItem = document.createElement('div');
+            orderItem.className = 'order-item';
+            orderItem.innerHTML = `
+                <div class="order-header">
+                    <h4>Order #${order.orderNumber}</h4>
+                    <span class="order-status ${order.orderStatus}">${order.orderStatus}</span>
+                </div>
+                <div class="order-details">
+                    <p><strong>Motorcycle:</strong> ${order.motorcycleName} - ${order.motorcycleBrand}</p>
+                    <p><strong>Price:</strong> $${order.motorcyclePrice.toLocaleString()}</p>
+                    <p><strong>Payment:</strong> ${order.paymentMethod.replace('_', ' ').toUpperCase()}</p>
+                    <p><strong>Date:</strong> ${new Date(order.orderDate).toLocaleDateString()}</p>
+                </div>
+            `;
+            elements.ordersList.appendChild(orderItem);
+        });
     } catch (error) {
-        showMessage('Booking failed: ' + error.message, 'error');
+        console.error('Error loading user orders:', error);
+        elements.ordersList.innerHTML = '<div class="message error">Error loading orders.</div>';
     }
+}
+
+// Load user profile
+function loadUserProfile() {
+    if (!currentUser) return;
+    
+    document.getElementById('profileFirstName').value = currentUser.displayName?.split(' ')[0] || '';
+    document.getElementById('profileLastName').value = currentUser.displayName?.split(' ')[1] || '';
+    document.getElementById('profileEmail').value = currentUser.email || '';
 }
 
 // Handle profile update
 async function handleProfileUpdate(e) {
     e.preventDefault();
     
-    const name = document.getElementById('profileName').value;
+    const firstName = document.getElementById('profileFirstName').value;
+    const lastName = document.getElementById('profileLastName').value;
     const email = document.getElementById('profileEmail').value;
     const phone = document.getElementById('profilePhone').value;
-    const address = document.getElementById('profileAddress').value;
     
     try {
-        await currentUser.updateProfile({ displayName: name });
+        await currentUser.updateProfile({
+            displayName: `${firstName} ${lastName}`
+        });
+        
         await db.collection('users').doc(currentUser.uid).update({
-            name: name,
-            phone: phone,
-            address: address,
+            firstName,
+            lastName,
+            email,
+            phone,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
         showMessage('Profile updated successfully!', 'success');
-        closeAllModals();
+        hideModal(elements.profileModal);
     } catch (error) {
-        showMessage('Profile update failed: ' + error.message, 'error');
+        console.error('Error updating profile:', error);
+        showMessage('Error updating profile. Please try again.', 'error');
     }
 }
 
@@ -416,805 +832,91 @@ async function handleProfileUpdate(e) {
 async function handleContact(e) {
     e.preventDefault();
     
-    const name = document.getElementById('contactName').value;
-    const email = document.getElementById('contactEmail').value;
-    const phone = document.getElementById('contactPhone').value;
-    const message = document.getElementById('contactMessage').value;
+    const formData = new FormData(this);
+    const contactData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        subject: formData.get('subject'),
+        message: formData.get('message'),
+        status: 'new',
+        createdAt: new Date().toISOString()
+    };
     
     try {
-        await db.collection('contactMessages').add({
-            name: name,
-            email: email,
-            phone: phone,
-            message: message,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showMessage('Message sent successfully!', 'success');
-        elements.contactForm.reset();
+        await db.collection('contacts').add(contactData);
+        showMessage('Message sent successfully! We will contact you soon.', 'success');
+        this.reset();
     } catch (error) {
-        showMessage('Failed to send message: ' + error.message, 'error');
+        console.error('Error sending message:', error);
+        showMessage('Error sending message. Please try again.', 'error');
     }
 }
 
-// Load bikes from Firestore
-async function loadBikes() {
-    try {
-        console.log('Loading bikes from Firestore...');
-        const snapshot = await db.collection('bikes').get();
-        
-        if (snapshot.empty) {
-            console.log('No bikes found in Firestore. Please add sample data first.');
-            bikes = [];
-            filteredBikes = [];
-            renderBikes();
-            return;
-        }
-        
-        bikes = snapshot.docs.map(doc => {
-            const data = doc.data();
-            // Clean up engine values - remove 'cc' suffix if present and convert to number
-            if (data.engine && typeof data.engine === 'string') {
-                data.engine = parseInt(data.engine.replace('cc', '')) || 0;
-            } else if (typeof data.engine === 'number') {
-                data.engine = data.engine;
-            } else {
-                data.engine = 0;
-            }
-            return {
-                id: doc.id,
-                ...data
-            };
-        });
-        filteredBikes = [...bikes];
-        console.log(`Loaded ${bikes.length} bikes from Firestore`);
-        renderBikes();
-    } catch (error) {
-        console.error('Error loading bikes from Firestore:', error);
-        bikes = [];
-        filteredBikes = [];
-        renderBikes();
-        showMessage('Error loading bikes. Please check your connection and try again.', 'error');
-    }
+// Admin panel functions
+function showAdminPanel() {
+    elements.adminPanel.style.display = 'grid';
+    showAdminDashboard();
 }
 
-// This function is no longer needed as we load all data from Firestore
-
-// Render bikes
-function renderBikes() {
-    elements.bikesGrid.innerHTML = '';
-    
-    if (filteredBikes.length === 0) {
-        elements.bikesGrid.innerHTML = `
-            <div class="no-bikes-message">
-                <i class="fas fa-motorcycle"></i>
-                <h3>No bikes found</h3>
-                <p>No bikes are currently available. Please check back later or contact us for more information.</p>
-                ${isAdmin ? '<button class="btn btn-primary" onclick="addSampleBikesToFirestore()">Add Sample Data</button>' : ''}
-            </div>
-        `;
-        return;
-    }
-    
-    filteredBikes.forEach(bike => {
-        const bikeCard = createBikeCard(bike);
-        elements.bikesGrid.appendChild(bikeCard);
-    });
+function hideAdminPanel() {
+    elements.adminPanel.style.display = 'none';
 }
 
-// Create bike card element
-function createBikeCard(bike) {
-    const card = document.createElement('div');
-    card.className = 'bike-card';
-    card.innerHTML = `
-        <img src="${bike.image}" alt="${bike.name}" onerror="handleImageError(this)">
-        <div class="bike-card-content">
-            <div class="brand">${bike.brand}</div>
-            <h3>${bike.name}</h3>
-            <div class="price">$${bike.price}/day</div>
-            <div class="features">
-                <span><i class="fas fa-calendar"></i> ${bike.year}</span>
-                <span><i class="fas fa-user"></i> ${bike.seats} seats</span>
-                <span><i class="fas fa-gas-pump"></i> ${bike.fuelType}</span>
-            </div>
-            <p class="description">${bike.description}</p>
-            <button class="btn btn-primary" onclick="openBookingModal('${bike.id}')">Book Now</button>
-        </div>
-    `;
-    return card;
-}
-
-// Handle image loading errors
-function handleImageError(img) {
-    // Prevent infinite loop by checking if already set to fallback
-    if (img.dataset.errorHandled) {
-        return;
-    }
-    
-    // Mark as error handled to prevent infinite loop
-    img.dataset.errorHandled = 'true';
-    
-    // Remove the onerror handler to prevent further calls
-    img.onerror = null;
-    
-    // Use local placeholder image
-    img.src = 'assets/images/placeholder.svg';
-    img.style.backgroundColor = '#f0f0f0';
-    img.style.border = '1px solid #ddd';
-}
-
-// Open booking modal
-function openBookingModal(bikeId) {
-    if (!currentUser) {
-        elements.loginModal.style.display = 'block';
-        return;
-    }
-    
-    const bike = bikes.find(b => b.id === bikeId);
-    if (bike) {
-        currentBikeId = bikeId;
-        document.getElementById('bookingBikeImage').src = bike.image;
-        document.getElementById('bookingBikeName').textContent = bike.name;
-        document.getElementById('bookingBikePrice').textContent = `$${bike.price}/day`;
-        elements.bookingModal.style.display = 'block';
-    }
-}
-
-// Filter bikes
-function filterBikes() {
-    const searchTerm = elements.searchInput.value.toLowerCase();
-    const brandFilter = elements.brandFilter.value;
-    const fuelFilter = elements.fuelFilter.value;
-    const priceFilter = elements.priceFilter.value;
-    
-    filteredBikes = bikes.filter(bike => {
-        const matchesSearch = bike.name.toLowerCase().includes(searchTerm) ||
-                            bike.brand.toLowerCase().includes(searchTerm) ||
-                            bike.description.toLowerCase().includes(searchTerm);
-        
-        const matchesBrand = !brandFilter || bike.brand === brandFilter;
-        const matchesFuel = !fuelFilter || bike.fuelType === fuelFilter;
-        
-        let matchesPrice = true;
-        if (priceFilter) {
-            const [min, max] = priceFilter.split('-').map(p => p === '+' ? Infinity : parseInt(p));
-            matchesPrice = bike.price >= min && bike.price <= max;
-        }
-        
-        return matchesSearch && matchesBrand && matchesFuel && matchesPrice;
-    });
-    
-    renderBikes();
-}
-
-// Load more bikes
-function loadMoreBikes() {
-    // In a real app, this would load more bikes from the server
-    showMessage('All bikes loaded!', 'info');
-}
-
-// Load testimonials
-async function loadTestimonials() {
-    try {
-        const snapshot = await db.collection('testimonials').get();
-        const testimonials = snapshot.docs.map(doc => doc.data());
-        renderTestimonials(testimonials);
-    } catch (error) {
-        console.error('Error loading testimonials:', error);
-        // Load sample testimonials
-        loadSampleTestimonials();
-    }
-}
-
-// Load sample testimonials
-function loadSampleTestimonials() {
-    const testimonials = [
-        {
-            name: 'John Smith',
-            text: 'Amazing service! The bike was in perfect condition and the staff was very helpful.',
-            rating: 5
-        },
-        {
-            name: 'Sarah Johnson',
-            text: 'Great experience! Easy booking process and excellent customer support.',
-            rating: 5
-        },
-        {
-            name: 'Mike Wilson',
-            text: 'Best bike rental service in town. Highly recommended!',
-            rating: 5
-        }
-    ];
-    renderTestimonials(testimonials);
-}
-
-// Render testimonials
-function renderTestimonials(testimonials) {
-    elements.testimonialsSlider.innerHTML = '';
-    
-    testimonials.forEach(testimonial => {
-        const testimonialCard = document.createElement('div');
-        testimonialCard.className = 'testimonial-card';
-        testimonialCard.innerHTML = `
-            <div class="stars">${'★'.repeat(testimonial.rating)}</div>
-            <p>"${testimonial.text}"</p>
-            <div class="author">- ${testimonial.name}</div>
-        `;
-        elements.testimonialsSlider.appendChild(testimonialCard);
-    });
-}
-
-// Load user bookings
-async function loadUserBookings() {
-    if (!currentUser) return;
-    
-    try {
-        const snapshot = await db.collection('bookings')
-            .where('userId', '==', currentUser.uid)
-            .orderBy('createdAt', 'desc')
-            .get();
-        
-        const bookings = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        renderUserBookings(bookings);
-    } catch (error) {
-        console.error('Error loading bookings:', error);
-        elements.bookingsList.innerHTML = '<p>Error loading bookings. Please try again.</p>';
-    }
-}
-
-// Render user bookings
-function renderUserBookings(bookings) {
-    elements.bookingsList.innerHTML = '';
-    
-    if (bookings.length === 0) {
-        elements.bookingsList.innerHTML = '<p>No bookings found.</p>';
-        return;
-    }
-    
-    bookings.forEach(booking => {
-        const bike = bikes.find(b => b.id === booking.bikeId);
-        if (bike) {
-            const bookingItem = document.createElement('div');
-            bookingItem.className = 'booking-item';
-            bookingItem.innerHTML = `
-                <img src="${bike.image}" alt="${bike.name}">
-                <div class="booking-details">
-                    <h4>${bike.name}</h4>
-                    <p><strong>Brand:</strong> ${bike.brand}</p>
-                    <p><strong>From:</strong> ${booking.fromDate}</p>
-                    <p><strong>To:</strong> ${booking.toDate}</p>
-                    <p><strong>Price:</strong> $${bike.price}/day</p>
-                    ${booking.message ? `<p><strong>Message:</strong> ${booking.message}</p>` : ''}
-                </div>
-                <div class="booking-status ${booking.status}">${booking.status}</div>
-            `;
-            elements.bookingsList.appendChild(bookingItem);
-        }
-    });
-}
-
-// Load user profile
-function loadUserProfile() {
-    if (!currentUser) return;
-    
-    document.getElementById('profileName').value = currentUser.displayName || '';
-    document.getElementById('profileEmail').value = currentUser.email || '';
-    
-    // Load additional user data from Firestore
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-        if (doc.exists) {
-            const userData = doc.data();
-            document.getElementById('profilePhone').value = userData.phone || '';
-            document.getElementById('profileAddress').value = userData.address || '';
-        }
-    });
-}
-
-// Show admin section
-function showAdminSection(section) {
-    elements.adminSectionTitle.textContent = section.charAt(0).toUpperCase() + section.slice(1);
-    
-    switch (section) {
-        case 'dashboard':
-            showAdminDashboard();
-            break;
-        case 'bikes':
-            showAdminBikes();
-            break;
-        case 'bookings':
-            showAdminBookings();
-            break;
-        case 'users':
-            showAdminUsers();
-            break;
-        case 'testimonials':
-            showAdminTestimonials();
-            break;
-    }
-}
-
-// Show admin dashboard
 function showAdminDashboard() {
+    elements.adminSectionTitle.textContent = 'Dashboard';
     elements.adminSection.innerHTML = `
         <div class="admin-stats">
             <div class="stat-card">
-                <h3>Total Bikes</h3>
-                <div class="stat-number">${bikes.length}</div>
+                <h3>Total Motorcycles</h3>
+                <div class="stat-number" id="totalMotorcycles">-</div>
             </div>
             <div class="stat-card">
-                <h3>Total Bookings</h3>
-                <div class="stat-number" id="totalBookings">-</div>
+                <h3>Total Orders</h3>
+                <div class="stat-number" id="totalOrders">-</div>
             </div>
             <div class="stat-card">
-                <h3>Active Users</h3>
+                <h3>Total Users</h3>
                 <div class="stat-number" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Inquiries</h3>
+                <div class="stat-number" id="totalInquiries">-</div>
             </div>
         </div>
     `;
     
-    // Load stats
     loadAdminStats();
 }
 
-// Load admin statistics
 async function loadAdminStats() {
     try {
-        const bookingsSnapshot = await db.collection('bookings').get();
+        // Load motorcycles count
+        const motorcyclesSnapshot = await db.collection('motorcycles').get();
+        document.getElementById('totalMotorcycles').textContent = motorcyclesSnapshot.size;
+        
+        // Load orders count
+        const ordersSnapshot = await db.collection('orders').get();
+        document.getElementById('totalOrders').textContent = ordersSnapshot.size;
+        
+        // Load users count
         const usersSnapshot = await db.collection('users').get();
+        document.getElementById('totalUsers').textContent = usersSnapshot.size;
         
-        const totalBookingsElement = document.getElementById('totalBookings');
-        const totalUsersElement = document.getElementById('totalUsers');
-        
-        if (totalBookingsElement) {
-            totalBookingsElement.textContent = bookingsSnapshot.size;
-        }
-        if (totalUsersElement) {
-            totalUsersElement.textContent = usersSnapshot.size;
-        }
+        // Load inquiries count
+        const inquiriesSnapshot = await db.collection('inquiries').get();
+        document.getElementById('totalInquiries').textContent = inquiriesSnapshot.size;
     } catch (error) {
         console.error('Error loading admin stats:', error);
     }
 }
 
-// Show admin bikes
-function showAdminBikes() {
-    elements.adminSection.innerHTML = `
-        <div class="admin-header">
-            <h3>Manage Bikes</h3>
-            <div class="admin-actions">
-                <button class="btn btn-primary" onclick="showAddBikeForm()">Add New Bike</button>
-                <button class="btn btn-secondary" onclick="addSampleBikesToFirestore()">Add Sample Data</button>
-                <button class="btn btn-outline" onclick="clearAllBikesFromFirestore()" style="background: #dc3545; color: white;">Clear All Bikes</button>
-            </div>
-        </div>
-        <div class="bikes-admin-list" id="bikesAdminList">
-            <!-- Bikes will be loaded here -->
-        </div>
-    `;
-    
-    loadAdminBikes();
-}
-
-// Load admin bikes
-function loadAdminBikes() {
-    const bikesList = document.getElementById('bikesAdminList');
-    if (bikesList) {
-        bikesList.innerHTML = '';
-        
-        if (bikes.length === 0) {
-        bikesList.innerHTML = `
-            <div class="no-bikes-admin">
-                <i class="fas fa-motorcycle"></i>
-                <h3>No bikes in database</h3>
-                <p>Add sample data to get started with 25 pre-configured bikes.</p>
-                <button class="btn btn-primary" onclick="addSampleBikesToFirestore()">Add Sample Data</button>
-            </div>
-        `;
-        return;
-    }
-    
-    bikes.forEach(bike => {
-        const bikeItem = document.createElement('div');
-        bikeItem.className = 'admin-bike-item';
-        bikeItem.innerHTML = `
-            <div class="bike-image">
-                <img src="${bike.image}" alt="${bike.name}" onerror="handleImageError(this)">
-                <div class="availability-badge ${bike.availability}">${bike.availability}</div>
-            </div>
-            <div class="bike-info">
-                <h4>${bike.name}</h4>
-                <p class="bike-brand">${bike.brand}</p>
-                <div class="bike-details">
-                    <span class="price">$${bike.price}/day</span>
-                    <span class="engine">${bike.engine}cc</span>
-                    <span class="type">${bike.type}</span>
-                </div>
-                <p class="bike-description">${bike.description || 'No description available'}</p>
-            </div>
-            <div class="bike-actions">
-                <button class="btn btn-primary" onclick="editBike('${bike.id}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-danger" onclick="deleteBike('${bike.id}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
-        `;
-        bikesList.appendChild(bikeItem);
-    });
-        }
-    }
-
-// Show add bike form
-function showAddBikeForm() {
-    showBikeForm();
-}
-
-// Show edit bike form
-function editBike(bikeId) {
-    const bike = bikes.find(b => b.id === bikeId);
-    if (!bike) {
-        alert('Bike not found!');
-        return;
-    }
-    showBikeForm(bike);
-}
-
-// Show bike form (for both add and edit)
-function showBikeForm(bike = null) {
-    const isEdit = !!bike;
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h3>${isEdit ? 'Edit Bike' : 'Add New Bike'}</h3>
-                <span class="close" onclick="closeModal(this)">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="bikeForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bikeName">Bike Name</label>
-                            <input type="text" id="bikeName" name="name" value="${bike?.name || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="bikeBrand">Brand</label>
-                            <input type="text" id="bikeBrand" name="brand" value="${bike?.brand || ''}" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bikePrice">Price per Day ($)</label>
-                            <input type="number" id="bikePrice" name="price" min="1" value="${bike?.price || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="bikeEngine">Engine (CC)</label>
-                            <input type="number" id="bikeEngine" name="engine" min="100" value="${bike?.engine ? bike.engine.toString().replace('cc', '') : ''}" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="bikeImage">Image URL</label>
-                        <input type="url" id="bikeImage" name="image" value="${bike?.image || ''}" required>
-                        <div class="image-preview" id="imagePreview">
-                            ${bike?.image ? `<img src="${bike.image}" alt="Bike Preview" onerror="handleImageError(this)">` : ''}
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="bikeDescription">Description</label>
-                        <textarea id="bikeDescription" name="description" rows="4">${bike?.description || ''}</textarea>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bikeType">Type</label>
-                            <select id="bikeType" name="type" required>
-                                <option value="sport" ${bike?.type === 'sport' ? 'selected' : ''}>Sport</option>
-                                <option value="cruiser" ${bike?.type === 'cruiser' ? 'selected' : ''}>Cruiser</option>
-                                <option value="touring" ${bike?.type === 'touring' ? 'selected' : ''}>Touring</option>
-                                <option value="adventure" ${bike?.type === 'adventure' ? 'selected' : ''}>Adventure</option>
-                                <option value="naked" ${bike?.type === 'naked' ? 'selected' : ''}>Naked</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="bikeAvailability">Availability</label>
-                            <select id="bikeAvailability" name="availability" required>
-                                <option value="available" ${bike?.availability === 'available' ? 'selected' : ''}>Available</option>
-                                <option value="rented" ${bike?.availability === 'rented' ? 'selected' : ''}>Rented</option>
-                                <option value="maintenance" ${bike?.availability === 'maintenance' ? 'selected' : ''}>Maintenance</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal(this.parentElement.parentElement.parentElement)">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-${isEdit ? 'save' : 'plus'}"></i>
-                            ${isEdit ? 'Update Bike' : 'Add Bike'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Handle image preview
-    const imageInput = document.getElementById('bikeImage');
-    const imagePreview = document.getElementById('imagePreview');
-    
-    imageInput.addEventListener('input', function() {
-        const url = this.value;
-        if (url) {
-            imagePreview.innerHTML = `<img src="${url}" alt="Bike Preview" onerror="handleImageError(this)">`;
-        } else {
-            imagePreview.innerHTML = '';
-        }
-    });
-    
-    // Handle form submission
-    document.getElementById('bikeForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const price = parseInt(formData.get('price'));
-        const engine = parseInt(formData.get('engine'));
-        
-        // Validate required fields
-        if (!formData.get('name') || !formData.get('brand') || !price || !engine || !formData.get('image')) {
-            alert('Please fill in all required fields with valid values.');
-            return;
-        }
-        
-        if (price <= 0 || engine <= 0) {
-            alert('Price and engine size must be greater than 0.');
-            return;
-        }
-        
-        const bikeData = {
-            name: formData.get('name').trim(),
-            brand: formData.get('brand').trim(),
-            price: price,
-            image: formData.get('image').trim(),
-            description: formData.get('description').trim(),
-            type: formData.get('type'),
-            engine: engine,
-            availability: formData.get('availability'),
-            updatedAt: new Date().toISOString()
-        };
-        
-        if (isEdit) {
-            bikeData.createdAt = bike.createdAt; // Preserve original creation date
-        } else {
-            bikeData.createdAt = new Date().toISOString();
-        }
-        
-        // Show loading state
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        submitBtn.disabled = true;
-        
-        try {
-            if (isEdit) {
-                await db.collection('bikes').doc(bike.id).update(bikeData);
-                alert('Bike updated successfully!');
-            } else {
-                await db.collection('bikes').add(bikeData);
-                alert('Bike added successfully!');
-            }
-            closeModal(modal);
-            loadBikes(); // Reload bikes list
-            loadAdminBikes(); // Reload admin bikes list
-        } catch (error) {
-            console.error(`Error ${isEdit ? 'updating' : 'adding'} bike:`, error);
-            alert(`Error ${isEdit ? 'updating' : 'adding'} bike. Please try again.`);
-        } finally {
-            // Restore button state
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }
-    });
-}
-
-// Show admin bookings
-function showAdminBookings() {
-    elements.adminSection.innerHTML = `
-        <div class="admin-header">
-            <h3>Manage Bookings</h3>
-        </div>
-        <div class="bookings-admin-list" id="bookingsAdminList">
-            <!-- Bookings will be loaded here -->
-        </div>
-    `;
-    
-    loadAdminBookings();
-}
-
-// Load admin bookings
-async function loadAdminBookings() {
-    try {
-        const snapshot = await db.collection('bookings')
-            .orderBy('createdAt', 'desc')
-            .get();
-        
-        const bookings = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        const bookingsList = document.getElementById('bookingsAdminList');
-        if (bookingsList) {
-            bookingsList.innerHTML = '';
-            
-            for (const booking of bookings) {
-            const bike = bikes.find(b => b.id === booking.bikeId);
-            const userDoc = await db.collection('users').doc(booking.userId).get();
-            const userData = userDoc.exists ? userDoc.data() : { name: 'Unknown User' };
-            
-            const bookingItem = document.createElement('div');
-            bookingItem.className = 'admin-booking-item';
-            bookingItem.innerHTML = `
-                <div class="booking-info">
-                    <h4>${bike ? bike.name : 'Unknown Bike'}</h4>
-                    <p><strong>User:</strong> ${userData.name}</p>
-                    <p><strong>From:</strong> ${booking.fromDate}</p>
-                    <p><strong>To:</strong> ${booking.toDate}</p>
-                    <p><strong>Status:</strong> ${booking.status}</p>
-                </div>
-                <div class="booking-actions">
-                    <select onchange="updateBookingStatus('${booking.id}', this.value)">
-                        <option value="pending" ${booking.status === 'pending' ? 'selected' : ''}>Pending</option>
-                        <option value="confirmed" ${booking.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
-                        <option value="cancelled" ${booking.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                    </select>
-                </div>
-            `;
-            bookingsList.appendChild(bookingItem);
-        }
-        }
-    } catch (error) {
-        console.error('Error loading admin bookings:', error);
-    }
-}
-
-// Update booking status
-async function updateBookingStatus(bookingId, status) {
-    try {
-        await db.collection('bookings').doc(bookingId).update({
-            status: status,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showMessage('Booking status updated!', 'success');
-    } catch (error) {
-        showMessage('Failed to update booking status: ' + error.message, 'error');
-    }
-}
-
-// Show admin users
-function showAdminUsers() {
-    elements.adminSection.innerHTML = `
-        <div class="admin-header">
-            <h3>Manage Users</h3>
-        </div>
-        <div class="users-admin-list" id="usersAdminList">
-            <!-- Users will be loaded here -->
-        </div>
-    `;
-    
-    loadAdminUsers();
-}
-
-// Load admin users
-async function loadAdminUsers() {
-    try {
-        const snapshot = await db.collection('users').get();
-        const users = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        const usersList = document.getElementById('usersAdminList');
-        if (usersList) {
-            usersList.innerHTML = '';
-            
-            users.forEach(user => {
-            const userItem = document.createElement('div');
-            userItem.className = 'admin-user-item';
-            userItem.innerHTML = `
-                <div class="user-info">
-                    <h4>${user.name}</h4>
-                    <p>${user.email}</p>
-                    <p>Phone: ${user.phone || 'N/A'}</p>
-                </div>
-                <div class="user-actions">
-                    <button class="btn btn-secondary" onclick="toggleUserAdmin('${user.id}', ${user.isAdmin})">
-                        ${user.isAdmin ? 'Remove Admin' : 'Make Admin'}
-                    </button>
-                </div>
-            `;
-            usersList.appendChild(userItem);
-        });
-        }
-    } catch (error) {
-        console.error('Error loading admin users:', error);
-    }
-}
-
-// Toggle user admin status
-async function toggleUserAdmin(userId, currentStatus) {
-    try {
-        await db.collection('users').doc(userId).update({
-            isAdmin: !currentStatus,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showMessage('User admin status updated!', 'success');
-        loadAdminUsers();
-    } catch (error) {
-        showMessage('Failed to update user admin status: ' + error.message, 'error');
-    }
-}
-
-// Show admin testimonials
-function showAdminTestimonials() {
-    elements.adminSection.innerHTML = `
-        <div class="admin-header">
-            <h3>Manage Testimonials</h3>
-            <button class="btn btn-primary" onclick="showAddTestimonialForm()">Add Testimonial</button>
-        </div>
-        <div class="testimonials-admin-list" id="testimonialsAdminList">
-            <!-- Testimonials will be loaded here -->
-        </div>
-    `;
-    
-    loadAdminTestimonials();
-}
-
-// Load admin testimonials
-async function loadAdminTestimonials() {
-    try {
-        const snapshot = await db.collection('testimonials').get();
-        const testimonials = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        const testimonialsList = document.getElementById('testimonialsAdminList');
-        if (testimonialsList) {
-            testimonialsList.innerHTML = '';
-            
-            testimonials.forEach(testimonial => {
-            const testimonialItem = document.createElement('div');
-            testimonialItem.className = 'admin-testimonial-item';
-            testimonialItem.innerHTML = `
-                <div class="testimonial-info">
-                    <h4>${testimonial.name}</h4>
-                    <p>"${testimonial.text}"</p>
-                    <div class="stars">${'★'.repeat(testimonial.rating)}</div>
-                </div>
-                <div class="testimonial-actions">
-                    <button class="btn btn-secondary" onclick="editTestimonial('${testimonial.id}')">Edit</button>
-                    <button class="btn btn-outline" onclick="deleteTestimonial('${testimonial.id}')">Delete</button>
-                </div>
-            `;
-            testimonialsList.appendChild(testimonialItem);
-        });
-        }
-    } catch (error) {
-        console.error('Error loading admin testimonials:', error);
-    }
-}
-
 // Show message
 function showMessage(message, type = 'info') {
+    // Remove existing messages
+    const existingMessages = document.querySelectorAll('.message');
+    existingMessages.forEach(msg => msg.remove());
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
     messageDiv.textContent = message;
@@ -1222,7 +924,7 @@ function showMessage(message, type = 'info') {
     // Insert at the top of the body
     document.body.insertBefore(messageDiv, document.body.firstChild);
     
-    // Remove after 5 seconds
+    // Auto remove after 5 seconds
     setTimeout(() => {
         if (messageDiv.parentNode) {
             messageDiv.parentNode.removeChild(messageDiv);
@@ -1230,13 +932,12 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
-// Event listeners for modal buttons
-elements.loginBtn.addEventListener('click', () => {
-    elements.loginModal.style.display = 'block';
-});
+// Check if user is admin (you can implement your own admin logic)
+function isAdmin() {
+    return currentUser && currentUser.email === 'admin@bikehaven.com';
+}
 
-elements.registerBtn.addEventListener('click', () => {
-    elements.registerModal.style.display = 'block';
-});
-
-// All data is now loaded from Firestore
+// Show admin panel if user is admin
+if (isAdmin()) {
+    showAdminPanel();
+}

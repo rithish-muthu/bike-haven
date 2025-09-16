@@ -1,347 +1,231 @@
-# Bike Haven - Premium Bike Showroom Management System
+# Bike Haven - Premium Motorcycle Showroom
 
-A modern, responsive web application for managing bike showroom operations with user authentication, bike booking, and admin panel functionality.
+A complete e-commerce website for a premium motorcycle showroom built with HTML, CSS, JavaScript, and Firebase.
 
-## 🚀 Features
+## 🏍️ Features
 
-### For Customers
-- **User Authentication**: Secure login/register system
-- **Bike Browsing**: Browse and search through available bikes
-- **Advanced Filtering**: Filter by brand, fuel type, and price range
-- **Booking System**: Book bikes with date selection
-- **User Profile**: Manage personal information
-- **Booking Management**: View and track booking history
+### Customer Features
+- **Browse Motorcycles**: View detailed motorcycle listings with filters
+- **Order Motorcycles**: Place orders with customer information and payment options
+- **Track Orders**: View order history and status
+- **Inquiries**: Send inquiries about specific motorcycles
+- **User Authentication**: Register, login, and manage profile
 - **Responsive Design**: Works on all devices
 
-### For Administrators
-- **Admin Dashboard**: Overview of system statistics
-- **Bike Management**: Add, edit, and delete bikes
-- **Booking Management**: View and manage all bookings
-- **User Management**: Manage user accounts and admin privileges
-- **Testimonial Management**: Manage customer testimonials
-- **Real-time Updates**: Live data synchronization
+### Admin Features
+- **Dashboard**: View sales statistics and metrics
+- **Order Management**: Manage customer orders and status updates
+- **User Management**: View registered users
+- **Inquiry Management**: Handle customer inquiries
+- **Motorcycle Management**: Add, edit, and manage motorcycle inventory
 
-## 🛠️ Technology Stack
+### Business Features
+- **Multiple Payment Options**: Cash, bank transfer, financing, credit card
+- **Order Tracking**: Complete order lifecycle management
+- **Inventory Management**: Automatic stock updates
+- **Customer Database**: Complete customer information tracking
+- **Sales Analytics**: Track sales performance
 
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: Firebase (Authentication, Firestore Database)
-- **UI Framework**: Custom CSS with modern design principles
-- **Icons**: Font Awesome
-- **Fonts**: Google Fonts (Poppins)
+## 🚀 Getting Started
 
-## 📋 Prerequisites
+### Prerequisites
+- A Firebase project
+- A web server (or use a local development server)
 
-Before running this project, make sure you have:
+### Installation
 
-1. A modern web browser (Chrome, Firefox, Safari, Edge)
-2. A Firebase project set up
-3. Basic knowledge of HTML, CSS, and JavaScript
+1. **Clone or download the project files**
 
-## 🔧 Setup Instructions
+2. **Set up Firebase**
+   - Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
+   - Enable Authentication and Firestore Database
+   - Get your Firebase configuration
 
-### 1. Clone the Repository
+3. **Configure Firebase**
+   - Open `assets/js/firebase-config.js`
+   - Replace the placeholder values with your actual Firebase configuration:
+   ```javascript
+   const firebaseConfig = {
+       apiKey: "your-api-key-here",
+       authDomain: "your-project-id.firebaseapp.com",
+       projectId: "your-project-id",
+       storageBucket: "your-project-id.appspot.com",
+       messagingSenderId: "your-sender-id",
+       appId: "your-app-id"
+   };
+   ```
 
-```bash
-git clone <repository-url>
-cd bike-showroom-management
+4. **Set up Firestore Security Rules**
+   - In Firebase Console, go to Firestore Database > Rules
+   - Use these rules for development (customize for production):
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /{document=**} {
+         allow read, write: if true;
+       }
+     }
+   }
+   ```
+
+5. **Deploy or run locally**
+   - Upload files to your web server, or
+   - Use a local development server like Live Server in VS Code
+
+## 📁 Project Structure
+
 ```
-
-### 2. Firebase Setup
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or use an existing one
-3. Enable Authentication and Firestore Database
-4. Get your Firebase configuration
-
-### 3. Configure Firebase
-
-1. Open `assets/js/firebase-config.js`
-2. Replace the placeholder values with your Firebase configuration:
-
-```javascript
-const firebaseConfig = {
-    apiKey: "your-api-key-here",
-    authDomain: "your-project-id.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project-id.appspot.com",
-    messagingSenderId: "your-sender-id",
-    appId: "your-app-id"
-};
+bike-haven-showroom/
+├── index.html                 # Main HTML file
+├── assets/
+│   ├── css/
+│   │   └── style.css         # Main stylesheet
+│   └── js/
+│       ├── app.js            # Main application logic
+│       ├── firebase-config.js # Firebase configuration
+│       └── sample-data.js    # Sample motorcycle data
+├── README.md                 # This file
+└── package.json             # Project dependencies
 ```
-
-### 4. Firebase Security Rules
-
-Set up Firestore security rules:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can read/write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Anyone can read bikes
-    match /bikes/{bikeId} {
-      allow read: if true;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
-    // Users can read their own bookings
-    match /bookings/{bookingId} {
-      allow read, write: if request.auth != null && 
-        (resource.data.userId == request.auth.uid || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
-    }
-    
-    // Anyone can read testimonials
-    match /testimonials/{testimonialId} {
-      allow read: if true;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
-    // Anyone can create contact messages
-    match /contactMessages/{messageId} {
-      allow create: if true;
-      allow read: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-  }
-}
-```
-
-### 5. Run the Application
-
-1. Open `index.html` in your web browser
-2. Or use a local server (recommended):
-
-```bash
-# Using Python
-python -m http.server 8000
-
-# Using Node.js
-npx http-server
-
-# Using PHP
-php -S localhost:8000
-```
-
-3. Navigate to `http://localhos t:8000` in your browser
-
-## 📱 Usage
-
-### For Customers
-
-1. **Register/Login**: Create an account or login with existing credentials
-2. **Browse Bikes**: Use the search and filter options to find your perfect bike
-3. **Book a Bike**: Click "Book Now" on any bike and select your dates
-4. **Manage Bookings**: View your booking history in the user menu
-5. **Update Profile**: Manage your personal information
-
-### For Administrators
-
-1. **Login**: Use an admin account to access the admin panel
-2. **Dashboard**: View system statistics and overview
-3. **Manage Bikes**: Add, edit, or remove bikes from the inventory
-4. **Manage Bookings**: View and update booking statuses
-5. **Manage Users**: View users and grant admin privileges
-6. **Manage Testimonials**: Add or remove customer testimonials
 
 ## 🗄️ Database Structure
 
 ### Collections
 
-#### Users
-```javascript
-{
-  name: string,
-  email: string,
-  phone: string,
-  address: string,
-  isAdmin: boolean,
-  createdAt: timestamp,
-  updatedAt: timestamp
-}
-```
+#### `motorcycles`
+- `name`: Motorcycle name
+- `brand`: Manufacturer brand
+- `type`: Type (sport, cruiser, touring, adventure, naked)
+- `price`: Sale price
+- `year`: Model year
+- `engine`: Engine displacement in cc
+- `seats`: Number of seats
+- `fuelType`: Fuel type (Petrol, Electric, etc.)
+- `availability`: available, sold, out-of-stock
+- `description`: Motorcycle description
+- `image`: Image URL
+- `createdAt`: Creation timestamp
+- `updatedAt`: Last update timestamp
 
-#### Bikes
-```javascript
-{
-  name: string,
-  brand: string,
-  price: number,
-  fuelType: string,
-  year: number,
-  seats: number,
-  image: string,
-  description: string,
-  features: array
-}
-```
+#### `orders`
+- `motorcycleId`: Reference to motorcycle
+- `motorcycleName`: Motorcycle name
+- `motorcycleBrand`: Motorcycle brand
+- `motorcyclePrice`: Motorcycle price
+- `customerFirstName`: Customer first name
+- `customerLastName`: Customer last name
+- `customerEmail`: Customer email
+- `customerPhone`: Customer phone
+- `customerAddress`: Customer address
+- `paymentMethod`: Payment method
+- `downPayment`: Down payment amount (for financing)
+- `financingAmount`: Financing amount
+- `orderStatus`: pending, confirmed, processing, completed, cancelled
+- `orderDate`: Order date
+- `orderNumber`: Unique order number
 
-#### Bookings
-```javascript
-{
-  userId: string,
-  bikeId: string,
-  fromDate: string,
-  toDate: string,
-  message: string,
-  status: string, // pending, confirmed, cancelled
-  createdAt: timestamp,
-  updatedAt: timestamp
-}
-```
+#### `inquiries`
+- `motorcycleId`: Reference to motorcycle
+- `motorcycleName`: Motorcycle name
+- `customerName`: Customer name
+- `customerEmail`: Customer email
+- `customerPhone`: Customer phone
+- `message`: Inquiry message
+- `status`: new, responded, closed
+- `createdAt`: Creation timestamp
 
-#### Testimonials
-```javascript
-{
-  name: string,
-  text: string,
-  rating: number,
-  createdAt: timestamp
-}
-```
+#### `users`
+- `firstName`: User first name
+- `lastName`: User last name
+- `email`: User email
+- `phone`: User phone
+- `createdAt`: Account creation timestamp
+- `updatedAt`: Last update timestamp
 
-#### Contact Messages
-```javascript
-{
-  name: string,
-  email: string,
-  phone: string,
-  message: string,
-  createdAt: timestamp
-}
-```
+#### `contacts`
+- `name`: Contact name
+- `email`: Contact email
+- `phone`: Contact phone
+- `subject`: Message subject
+- `message`: Message content
+- `status`: new, responded, closed
+- `createdAt`: Creation timestamp
 
 ## 🎨 Customization
 
 ### Colors
-The application uses CSS custom properties for easy theming. Modify the `:root` variables in `assets/css/style.css`:
-
+The color scheme can be customized in `assets/css/style.css` by modifying the CSS variables:
 ```css
 :root {
-    --primary-color: #ff6b35;
+    --primary-color: #e74c3c;
     --secondary-color: #2c3e50;
-    --accent-color: #3498db;
-    /* ... other variables */
+    --accent-color: #f39c12;
+    /* ... other colors */
 }
 ```
 
-### Adding New Features
-1. Modify the HTML structure in `index.html`
-2. Add corresponding CSS styles in `assets/css/style.css`
-3. Implement JavaScript functionality in `assets/js/app.js`
-4. Update Firebase security rules if needed
+### Branding
+- Update the logo and company name in `index.html`
+- Modify the hero section content
+- Update contact information
 
-## 🔒 Security Features
+### Sample Data
+- Edit `assets/js/sample-data.js` to add your own motorcycle data
+- The sample data will be automatically added to Firestore when the page loads
 
-- **Authentication**: Secure user authentication with Firebase
-- **Authorization**: Role-based access control (admin/user)
-- **Data Validation**: Client-side and server-side validation
-- **Secure Rules**: Firestore security rules for data protection
+## 🔧 Admin Access
+
+To access the admin panel:
+1. Register a user with email `admin@bikehaven.com`
+2. The admin panel will automatically appear
 
 ## 📱 Responsive Design
 
-The application is fully responsive and works on:
+The website is fully responsive and works on:
 - Desktop computers
 - Tablets
 - Mobile phones
-- Various screen sizes
 
 ## 🚀 Deployment
 
-### Firebase Hosting (Recommended)
-
-1. Install Firebase CLI:
-```bash
-npm install -g firebase-tools
-```
-
-2. Login to Firebase:
-```bash
-firebase login
-```
-
-3. Initialize Firebase in your project:
-```bash
-firebase init hosting
-```
-
-4. Deploy:
-```bash
-firebase deploy
-```
+### Firebase Hosting
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Login: `firebase login`
+3. Initialize: `firebase init hosting`
+4. Deploy: `firebase deploy`
 
 ### Other Hosting Options
+- Upload files to any web hosting service
+- Use GitHub Pages, Netlify, or Vercel
 
-- **Netlify**: Drag and drop the project folder
-- **Vercel**: Connect your GitHub repository
-- **GitHub Pages**: Push to a GitHub repository and enable Pages
-- **Traditional Web Hosting**: Upload files via FTP
+## 🔒 Security Considerations
 
-## 🐛 Troubleshooting
+For production deployment:
+1. Update Firestore security rules
+2. Enable Firebase Authentication providers
+3. Set up proper user permissions
+4. Use HTTPS
+5. Validate all user inputs
 
-### Common Issues
+## 📞 Support
 
-1. **Firebase not loading**: Check your Firebase configuration
-2. **Authentication not working**: Verify Firebase Auth is enabled
-3. **Database errors**: Check Firestore security rules
-4. **Images not loading**: Ensure image URLs are accessible
-
-### Debug Mode
-
-Enable debug mode by opening browser developer tools and checking the console for error messages.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+For support or questions:
+- Email: info@bikehaven.com
+- Phone: (555) 123-4567
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
-## 👥 Support
+## 🤝 Contributing
 
-For support and questions:
-- Create an issue in the repository
-- Contact the development team
-- Check the documentation
-
-## 🔄 Updates
-
-### Version 1.0.0
-- Initial release
-- Basic bike management
-- User authentication
-- Booking system
-- Admin panel
-- Responsive design
-
-### Future Updates
-- Mobile app version
-- Payment integration
-- Advanced analytics
-- Multi-language support
-- API integration
-
-## 📞 Contact
-
-- **Email**: info@bikehaven.com
-- **Phone**: +1 (555) 123-4567
-- **Website**: https://bikehaven.com
+1. Fork the project
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
 ---
 
-**Bike Haven** - Your premier destination for premium bike rentals! 🏍️
-#   b i k e - h a v e n  
- #   b i k e - h a v e n  
- #   b i k e - h a v e n  
- 
+**Bike Haven Showroom** - Your premier destination for premium motorcycles! 🏍️
